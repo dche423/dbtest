@@ -1,0 +1,26 @@
+@startuml
+namespace pg {
+    class Blog << (S,Aquamarine) >> {
+        + ID uint
+        + Title string
+        + Content string
+        + Tags pq.StringArray
+        + CreatedAt time.Time
+
+    }
+    class Repository << (S,Aquamarine) >> {
+        - db *gorm.DB
+
+        + Load(id uint) (*Blog, error)
+        + ListAll() ([]*Blog, error)
+        + List(offset int, limit int) ([]*Blog, error)
+        + Save(blog *Blog) error
+        + Delete(id uint) error
+        + SearchByTitle(q string, offset int, limit int) ([]*Blog, error)
+        + Migrate() error
+
+    }
+}
+
+
+@enduml

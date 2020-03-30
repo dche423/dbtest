@@ -1,2 +1,4 @@
 # dbtest
-show case for unit testing gorm code with sqlmock
+Show case for unit testing gorm code with sqlmock
+
+test:  `ginkgo -r`
