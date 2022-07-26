@@ -1,4 +1,4 @@
-package with_sqlmock_test
+package sqlmock_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestSql(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "With Sqlmock Suite")
+	RunSpecs(t, "Sqlmock Suite")
 }

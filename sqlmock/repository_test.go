@@ -1,4 +1,4 @@
-package with_sqlmock_test
+package sqlmock_test
 
 import (
 	"database/sql"
