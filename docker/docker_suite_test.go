@@ -73,7 +73,7 @@ func setupGormWithDocker() (*gorm.DB, func()) {
 	var gdb *gorm.DB
 	// retry until db server is ready
 	err = pool.Retry(func() error {
-		gdb, err = gorm.Open(postgres.Open(conStr), &gorm.Config{})
+		gdb, err = gorm.Open(postgres.Open(conStr))
 		if err != nil {
 			return err
 		}
