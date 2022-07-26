@@ -1,4 +1,4 @@
-package pg
+package dbtest
 
 import (
 	"time"

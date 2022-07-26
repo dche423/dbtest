@@ -1,4 +1,4 @@
-package pg_test
+package with_sqlmock_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestSql(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Pg Suite")
+	RunSpecs(t, "With Sqlmock Suite")
 }

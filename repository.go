@@ -1,12 +1,8 @@
-package pg
+package dbtest
 
 import (
 	"gorm.io/gorm"
 )
-
-func NewRepository(db *gorm.DB) *Repository {
-	return &Repository{Db: db}
-}
 
 type Repository struct {
 	Db *gorm.DB

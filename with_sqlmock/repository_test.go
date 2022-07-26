@@ -1,9 +1,11 @@
-package pg
+package with_sqlmock_test
 
 import (
 	"database/sql"
 	"regexp"
 	"time"
+
+	"dbtest"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/lib/pq"
@@ -14,7 +16,7 @@ import (
 )
 
 var _ = Describe("Repository", func() {
-	var repository *Repository
+	var repository *dbtest.Repository
 	var mock sqlmock.Sqlmock
 
 	BeforeEach(func() {
@@ -28,7 +30,7 @@ var _ = Describe("Repository", func() {
 		gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		repository = &Repository{Db: gdb}
+		repository = &dbtest.Repository{Db: gdb}
 	})
 	AfterEach(func() {
 		err := mock.ExpectationsWereMet() // make sure all expectations were met
@@ -50,7 +52,7 @@ var _ = Describe("Repository", func() {
 
 	Context("load", func() {
 		It("found", func() {
-			blog := &Blog{
+			blog := &dbtest.Blog{
 				ID:        1,
 				Title:     "post",
 				Content:   "hello",
@@ -110,9 +112,9 @@ var _ = Describe("Repository", func() {
 	})
 
 	Context("save", func() {
-		var blog *Blog
+		var blog *dbtest.Blog
 		BeforeEach(func() {
-			blog = &Blog{
+			blog = &dbtest.Blog{
 				Title:     "post",
 				Content:   "hello",
 				Tags:      pq.StringArray{"a", "b"},
