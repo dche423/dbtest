@@ -3,21 +3,19 @@ package main
 import (
 	"log"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"dbtest/pg"
 )
 
 func main() {
-	db, err := gorm.Open("postgres",
-		"host=myhost port=myport user=gorm dbname=gorm password=mypassword")
+	db, err := gorm.Open(postgres.Open("host=myhost port=myport user=gorm dbname=gorm password=mypassword"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
-	defer db.Close()
 
-	repo := pg.NewRepository(db)
+	repo := pg.Repository{Db: db}
 	if err := repo.Migrate(); err != nil {
 		log.Fatal("migrate err", err)
 	}

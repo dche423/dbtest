@@ -10,6 +10,6 @@ type Blog struct {
 	ID        uint
 	Title     string
 	Content   string
-	Tags      pq.StringArray // string array for tags
+	Tags      pq.StringArray `gorm:"type:text[]"` // string array for tags
 	CreatedAt time.Time
 }

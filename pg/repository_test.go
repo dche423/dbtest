@@ -5,12 +5,12 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/lib/pq"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jinzhu/gorm"
+	"github.com/lib/pq"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("Repository", func() {
@@ -22,13 +22,13 @@ var _ = Describe("Repository", func() {
 		var err error
 
 		// db, mock, err = sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual)) // use equal matcher
-		db, mock, err = sqlmock.New() // mock sql.DB
+		db, mock, err = sqlmock.New()
 		Expect(err).ShouldNot(HaveOccurred())
 
-		gdb, err := gorm.Open("postgres", db) // open gorm db
+		gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		repository = &Repository{db: gdb}
+		repository = &Repository{Db: gdb}
 	})
 	AfterEach(func() {
 		err := mock.ExpectationsWereMet() // make sure all expectations were met
@@ -62,7 +62,7 @@ var _ = Describe("Repository", func() {
 				NewRows([]string{"id", "title", "content", "tags", "created_at"}).
 				AddRow(blog.ID, blog.Title, blog.Content, blog.Tags, blog.CreatedAt)
 
-			const sqlSelectOne = `SELECT * FROM "blogs" WHERE (id = $1) ORDER BY "blogs"."id" ASC LIMIT 1`
+			const sqlSelectOne = `SELECT * FROM "blogs" WHERE id = $1 ORDER BY "blogs"."id" LIMIT 1`
 
 			mock.ExpectQuery(regexp.QuoteMeta(sqlSelectOne)).
 				WithArgs(blog.ID).
@@ -89,7 +89,7 @@ var _ = Describe("Repository", func() {
 				AddRow(2, "post 2", "hello 2", pq.StringArray{"go"}, time.Now())
 
 			// limit/offset is not parameter
-			const sqlSelectFirstTen = `SELECT * FROM "blogs" LIMIT 10 OFFSET 0`
+			const sqlSelectFirstTen = `SELECT * FROM "blogs" LIMIT 10`
 			mock.ExpectQuery(regexp.QuoteMeta(sqlSelectFirstTen)).WillReturnRows(rows)
 
 			l, err := repository.List(0, 10)
@@ -122,7 +122,7 @@ var _ = Describe("Repository", func() {
 
 		It("update", func() {
 			const sqlUpdate = `
-					UPDATE "blogs" SET "title" = $1, "content" = $2, "tags" = $3,  "created_at" = $4 WHERE "blogs"."id" = $5`
+					UPDATE "blogs" SET "title"=$1,"content"=$2,"tags"=$3,"created_at"=$4 WHERE "id" = $5`
 			const sqlSelectOne = `
 					SELECT * FROM "blogs" WHERE "blogs"."id" = $1 ORDER BY "blogs"."id" ASC LIMIT 1`
 
@@ -130,13 +130,8 @@ var _ = Describe("Repository", func() {
 			mock.ExpectBegin()
 			mock.ExpectExec(regexp.QuoteMeta(sqlUpdate)).
 				WithArgs(blog.Title, blog.Content, blog.Tags, blog.CreatedAt, blog.ID).
-				WillReturnResult(sqlmock.NewResult(0, 0))
+				WillReturnResult(sqlmock.NewResult(0, 1))
 			mock.ExpectCommit()
-
-			// select after update
-			mock.ExpectQuery(regexp.QuoteMeta(sqlSelectOne)).
-				WithArgs(blog.ID).
-				WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(blog.ID))
 
 			err := repository.Save(blog)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -147,7 +142,7 @@ var _ = Describe("Repository", func() {
 			// https://github.com/DATA-DOG/go-sqlmock/issues/118
 			const sqlInsert = `
 					INSERT INTO "blogs" ("title","content","tags","created_at") 
-						VALUES ($1,$2,$3,$4) RETURNING "blogs"."id"`
+						VALUES ($1,$2,$3,$4) RETURNING "id"`
 			const newId = 1
 			mock.ExpectBegin() // start transaction
 			mock.ExpectQuery(regexp.QuoteMeta(sqlInsert)).
@@ -174,8 +169,8 @@ var _ = Describe("Repository", func() {
 			// limit/offset is not parameter
 			const sqlSearch = `
 				SELECT * FROM "blogs" 
-				WHERE (title like $1) 
-				LIMIT 10 OFFSET 0`
+				WHERE title like $1 
+				LIMIT 10`
 			const q = "os"
 
 			mock.ExpectQuery(regexp.QuoteMeta(sqlSearch)).
