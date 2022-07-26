@@ -10,7 +10,6 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 func TestDocker(t *testing.T) {
@@ -46,22 +45,18 @@ func setupGormWithDocker() (*gorm.DB, func()) {
 	pool, err := dockertest.NewPool("")
 	chk(err)
 
-	runOpt := &dockertest.RunOptions{
-		Repository: "postgres", // set image name
-		Tag:        "14",       // set version
-		Env: []string{
-			"POSTGRES_PASSWORD=" + passwd, // default passwd
-			"POSTGRES_DB=" + dbName,
-		},
+	runDockerOpt := &dockertest.RunOptions{
+		Repository: "postgres", // image
+		Tag:        "14",       // version
+		Env:        []string{"POSTGRES_PASSWORD=" + passwd, "POSTGRES_DB=" + dbName},
 	}
 
 	fnConfig := func(config *docker.HostConfig) {
-		config.AutoRemove = true // set AutoRemove to true so that stopped container goes away by itself
-
+		config.AutoRemove = true                     // set AutoRemove to true so that stopped container goes away by itself
 		config.RestartPolicy = docker.NeverRestart() // don't restart container
 	}
 
-	resource, err := pool.RunWithOptions(runOpt, fnConfig)
+	resource, err := pool.RunWithOptions(runDockerOpt, fnConfig)
 	chk(err)
 	// call clean up function to release resource
 	fnCleanup := func() {
@@ -70,17 +65,15 @@ func setupGormWithDocker() (*gorm.DB, func()) {
 	}
 
 	conStr := fmt.Sprintf("host=localhost port=%s user=postgres dbname=%s password=%s sslmode=disable",
-		resource.GetPort("5432/tcp"),
+		resource.GetPort("5432/tcp"), // get port of localhost
 		dbName,
 		passwd,
 	)
 
-	dialector := postgres.Open(conStr) // create dialector
-
-	fnRetry := func() error {
-		// no log output since there will be several errors during setup
-		cfg := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
-		gdb, err := gorm.Open(dialector, cfg)
+	var gdb *gorm.DB
+	// retry until db server is ready
+	err = pool.Retry(func() error {
+		gdb, err = gorm.Open(postgres.Open(conStr), &gorm.Config{})
 		if err != nil {
 			return err
 		}
@@ -89,17 +82,11 @@ func setupGormWithDocker() (*gorm.DB, func()) {
 			return err
 		}
 		return db.Ping()
-	}
-
-	// retry until container is ready
-	err = pool.Retry(fnRetry)
+	})
 	chk(err)
 
-	// container is ready, create and return *gorm.Db for testing
-	db, err := gorm.Open(dialector, &gorm.Config{})
-	chk(err)
-
-	return db, fnCleanup
+	// container is ready, return *gorm.Db for testing
+	return gdb, fnCleanup
 }
 
 func chk(err error) {
