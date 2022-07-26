@@ -16,7 +16,7 @@ import (
 )
 
 var _ = Describe("Repository", func() {
-	var repository *dbtest.Repository
+	var repo *dbtest.Repository
 	var mock sqlmock.Sqlmock
 
 	BeforeEach(func() {
@@ -30,7 +30,7 @@ var _ = Describe("Repository", func() {
 		gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		repository = &dbtest.Repository{Db: gdb}
+		repo = &dbtest.Repository{Db: gdb}
 	})
 	AfterEach(func() {
 		err := mock.ExpectationsWereMet() // make sure all expectations were met
@@ -43,7 +43,7 @@ var _ = Describe("Repository", func() {
 			mock.ExpectQuery(regexp.QuoteMeta(sqlSelectAll)).
 				WillReturnRows(sqlmock.NewRows(nil))
 
-			l, err := repository.ListAll()
+			l, err := repo.ListAll()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(l).Should(BeEmpty())
 		})
@@ -64,13 +64,13 @@ var _ = Describe("Repository", func() {
 				NewRows([]string{"id", "title", "content", "tags", "created_at"}).
 				AddRow(blog.ID, blog.Title, blog.Content, blog.Tags, blog.CreatedAt)
 
-			const sqlSelectOne = `SELECT * FROM "blogs" WHERE id = $1 ORDER BY "blogs"."id" LIMIT 1`
+			const sqlSelectOne = `SELECT * FROM "blogs" WHERE "blogs"."id" = $1 LIMIT 1`
 
 			mock.ExpectQuery(regexp.QuoteMeta(sqlSelectOne)).
 				WithArgs(blog.ID).
 				WillReturnRows(rows)
 
-			dbBlog, err := repository.Load(blog.ID)
+			dbBlog, err := repo.Load(blog.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(dbBlog).Should(Equal(blog))
 		})
@@ -78,7 +78,7 @@ var _ = Describe("Repository", func() {
 		It("not found", func() {
 			// ignore sql match
 			mock.ExpectQuery(`.+`).WillReturnRows(sqlmock.NewRows(nil))
-			_, err := repository.Load(1)
+			_, err := repo.Load(1)
 			Expect(err).Should(Equal(gorm.ErrRecordNotFound))
 		})
 	})
@@ -94,7 +94,7 @@ var _ = Describe("Repository", func() {
 			const sqlSelectFirstTen = `SELECT * FROM "blogs" LIMIT 10`
 			mock.ExpectQuery(regexp.QuoteMeta(sqlSelectFirstTen)).WillReturnRows(rows)
 
-			l, err := repository.List(0, 10)
+			l, err := repo.List(0, 10)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(l).Should(HaveLen(2))
@@ -105,7 +105,7 @@ var _ = Describe("Repository", func() {
 		It("not found", func() {
 			// ignore sql match
 			mock.ExpectQuery(`.+`).WillReturnRows(sqlmock.NewRows(nil))
-			l, err := repository.List(0, 10)
+			l, err := repo.List(0, 10)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(l).Should(BeEmpty())
 		})
@@ -135,7 +135,7 @@ var _ = Describe("Repository", func() {
 				WillReturnResult(sqlmock.NewResult(0, 1))
 			mock.ExpectCommit()
 
-			err := repository.Save(blog)
+			err := repo.Save(blog)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -154,7 +154,7 @@ var _ = Describe("Repository", func() {
 
 			Expect(blog.ID).Should(BeZero())
 
-			err := repository.Save(blog)
+			err := repo.Save(blog)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(blog.ID).Should(BeEquivalentTo(newId))
@@ -179,7 +179,7 @@ var _ = Describe("Repository", func() {
 				WithArgs("%" + q + "%").
 				WillReturnRows(rows)
 
-			l, err := repository.SearchByTitle(q, 0, 10)
+			l, err := repo.SearchByTitle(q, 0, 10)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(l).Should(HaveLen(1))

@@ -10,7 +10,7 @@ type Repository struct {
 
 func (p *Repository) Load(id uint) (*Blog, error) {
 	blog := &Blog{}
-	err := p.Db.Where(`id = ?`, id).First(blog).Error
+	err := p.Db.Take(blog, id).Error
 	return blog, err
 }
 
